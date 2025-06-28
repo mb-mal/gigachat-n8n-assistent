@@ -1,0 +1,655 @@
+{
+  "name": "Gigachat-tg",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=ты личный ассистент\nсегодня {{ $now }}\nдля работы с календарем используй инструменты CALDAV-read, CALDAV-create, CALDAV-move и CALDAV-delete \nЕсли данных недостаточно - используй инструменты чтобы получить полную информацию самостоятельно\nПрежде чем создавать или переносить встречу - убедись что слоты не заняты. \nЕсли слоты заняты - уточни нужно ли скорректировать время на свободный слот и найди ближайший свободный самостоятельно.\nПосле выполнений действий сделай текущий отчет по факту"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        840,
+        140
+      ],
+      "id": "42dedb86-010d-456f-b23e-a4a3bdc36d6a",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolCalculator",
+      "typeVersion": 1,
+      "position": [
+        860,
+        360
+      ],
+      "id": "d861fc4b-e1de-44ba-993e-dd0cd1b6aba6",
+      "name": "Calculator"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        740,
+        360
+      ],
+      "id": "b5fc2c28-6517-4788-829e-235598b82a2a",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "GigaChat-2",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        620,
+        360
+      ],
+      "id": "1b93f3ad-3b4b-481b-b7c3-2a331d9b3aba",
+      "name": "ГигаЧат Сбер",
+      "credentials": {
+        "openAiApi": {
+          "id": "Wk5lxU3IWuiwj6QY",
+          "name": "GigaChat"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "*"
+        ],
+        "additionalFields": {
+          "userIds": "34768965"
+        }
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        600,
+        -260
+      ],
+      "id": "09fe1766-16d5-4d70-98ad-8aa18e4a98b3",
+      "name": "Telegram Trigger",
+      "webhookId": "0bf70f1a-5fb3-4362-b4af-5e782d9b9222",
+      "credentials": {
+        "telegramApi": {
+          "id": "j7FCsxQ9vMTE0PlK",
+          "name": "BOTNAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1500,
+        20
+      ],
+      "id": "b01da9cb-fa9e-49b7-abb6-b35e65673cd2",
+      "name": "Send a text message",
+      "webhookId": "abfb0cff-c8df-4ff5-8414-eb89cd6b4aec",
+      "credentials": {
+        "telegramApi": {
+          "id": "j7FCsxQ9vMTE0PlK",
+          "name": "BOTNAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "./test.sh"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        760,
+        -260
+      ],
+      "id": "3111958b-9beb-4111-9cde-01868af8c0f4",
+      "name": "Update token"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to read calendar events from Yandex calendar",
+        "jsCode": "const axios = require('axios');\n// Function to format date to CalDAV format (YYYYMMDDTHHMMSSZ)\nfunction formatCalDAVDate(date) {\n  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';\n}\nconsole.log(query);\n\n// Set the date range for the query (June 16 to June 17, 2025)\nconst startDate = new Date(query.start_date);\nconst endDate = new Date(query.end_date);\nconst startDateStr = formatCalDAVDate(startDate); // 20250616T000000Z\nconst endDateStr = formatCalDAVDate(endDate);     // 20250617T000000Z\n\n// CalDAV REPORT XML payload\nconst xmlPayload = `<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<C:calendar-query xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\">    \n  <D:prop>    \n    <D:getetag/>    \n    <C:calendar-data>    \n      <C:comp name=\"VCALENDAR\">    \n        <C:prop name=\"VERSION\"/>    \n        <C:comp name=\"VEVENT\">    \n          <C:prop name=\"SUMMARY\"/>    \n          <C:prop name=\"UID\"/>    \n          <C:prop name=\"DTSTART\"/>    \n          <C:prop name=\"DTEND\"/>    \n          <C:prop name=\"DURATION\"/>    \n          <C:prop name=\"RRULE\"/>    \n          <C:prop name=\"RDATE\"/>    \n          <C:prop name=\"EXRULE\"/>    \n          <C:prop name=\"EXDATE\"/>    \n          <C:prop name=\"RECURRENCE-ID\"/>    \n        </C:comp>    \n        <C:comp name=\"VTIMEZONE\"/>    \n      </C:comp>    \n    </C:calendar-data>    \n  </D:prop>    \n  <C:filter>    \n    <C:comp-filter name=\"VCALENDAR\">    \n      <C:comp-filter name=\"VEVENT\">    \n        <C:time-range start=\"${startDateStr}\" end=\"${endDateStr}\"/>    \n      </C:comp-filter>    \n    </C:comp-filter>    \n  </C:filter>    \n</C:calendar-query>`;\n\n// Configuration for the request\nconst email = 'YOUR_EMAIL@yandex.ru'; // Replace with actual email\nconst username = 'YOUR_EMAIL@yandex.ru';  // Replace with actual username\nconst password = 'YOUR_APP_PASSWORD';  // Replace with actual password\nconst secret = Buffer.from(`${username}:${password}`).toString('base64');\nconst url = `https://caldav.yandex.ru/calendars/${email}/events-default/`;\n\n// Make the HTTP request using axios\ntry {\n  const response = await axios({\n    method: 'REPORT',\n    url: url,\n    headers: {\n      'Authorization': `Basic ${secret}`,\n      'Content-Type': 'application/xml; charset=utf-8',\n      'Depth': '1'\n    },\n    data: xmlPayload\n  });\n\n  // Return the response data as an item for n8n\n  return JSON.stringify([{\n    json: {\n      status: response.status,\n      data: response.data\n    }\n  }]);\n} catch (error) {\n  // Handle errors and return them in n8n format\n  return JSON.stringify([{\n    json: {\n      error: error.message,\n      details: error.response ? error.response.data : null\n    }\n  }]);\n}",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n\t\"start_date\": \"2025-06-16T00:00:00Z\",\n  \"end_date\": \"2025-06-17T00:00:00Z\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1000,
+        460
+      ],
+      "id": "fa3dc7df-097a-4080-aa98-bb25dca6c562",
+      "name": "CALDAV-read1"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to create calendar events in Yandex calendar\nThe tool will create the event on the CalDAV server and return the event details or any error information in n8n-compatible JSON format.",
+        "jsCode": "const axios = require('axios');\nconst crypto = require('crypto');\n\n// Function to format date to CalDAV format (YYYYMMDDTHHMMSSZ)\nfunction formatCalDAVDate(date) {\n  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';\n}\n\n// Function to generate a unique UID for the event\nfunction generateUID() {\n  return `${crypto.randomBytes(16).toString('hex')}@caldav.yandex.ru`;\n}\n\n// Function to format event date for iCalendar (YYYYMMDDTHHMMSS)\nfunction formatEventDate(date) {\n  const d = new Date(date);\n  const year = d.getFullYear();\n  const month = String(d.getMonth() + 1).padStart(2, '0');\n  const day = String(d.getDate()).padStart(2, '0');\n  const hours = String(d.getHours()).padStart(2, '0');\n  const minutes = String(d.getMinutes()).padStart(2, '0');\n  const seconds = String(d.getSeconds()).padStart(2, '0');\n  return `${year}${month}${day}T${hours}${minutes}${seconds}`;\n}\n\nconsole.log(query);\n\n// Extract event details from query\nconst eventTitle = query.title || 'New Event';\nconst eventDescription = query.description || '';\nconst eventLocation = query.location || '';\nconst startDate = new Date(query.start_date);\nconst endDate = new Date(query.end_date);\nconst timezone = query.timezone || 'Europe/Moscow'; // Default to Moscow timezone for Yandex\n\n// Generate unique identifiers\nconst uid = generateUID();\nconst filename = `${uid}.ics`;\nconst timestamp = formatCalDAVDate(new Date());\n\n// Create iCalendar event data\nconst icalData = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//CalDAV Client//EN\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nUID:${uid}\nDTSTAMP:${timestamp}\nDTSTART;TZID=${timezone}:${formatEventDate(startDate)}\nDTEND;TZID=${timezone}:${formatEventDate(endDate)}\nSUMMARY:${eventTitle}\nDESCRIPTION:${eventDescription}\nLOCATION:${eventLocation}\nSTATUS:CONFIRMED\nTRANSP:OPAQUE\nEND:VEVENT\nEND:VCALENDAR`;\n\n// Configuration for the request\nconst email = 'YOUR_EMAIL@yandex.ru'; // Replace with actual email\nconst username = 'YOUR_EMAIL@yandex.ru';  // Replace with actual username\nconst password = 'YOUR_APP_PASSWORD';  // Replace with actual password\nconst secret = Buffer.from(`${username}:${password}`).toString('base64');\nconst url = `https://caldav.yandex.ru/calendars/${email}/events-default/${filename}`;\n\n// Make the HTTP PUT request to create the event\ntry {\n  const response = await axios({\n    method: 'PUT',\n    url: url,\n    headers: {\n      'Authorization': `Basic ${secret}`,\n      'Content-Type': 'text/calendar; charset=utf-8',\n      'If-None-Match': '*' // Ensures we don't overwrite existing events\n    },\n    data: icalData\n  });\n\n  // Return success response in n8n format\n  return JSON.stringify([{\n    json: {\n      status: response.status,\n      message: 'Event created successfully',\n      eventDetails: {\n        uid: uid,\n        title: eventTitle,\n        startDate: startDate.toISOString(),\n        endDate: endDate.toISOString(),\n        location: eventLocation,\n        description: eventDescription,\n        url: url\n      }\n    }\n  }]);\n} catch (error) {\n  // Handle errors and return them in n8n format\n  return JSON.stringify([{\n    json: {\n      error: error.message,\n      status: error.response ? error.response.status : null,\n      details: error.response ? error.response.data : null,\n      eventData: {\n        title: eventTitle,\n        startDate: startDate.toISOString(),\n        endDate: endDate.toISOString()\n      }\n    }\n  }]);\n}",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{ \"title\": \"Team Meeting\",\n  \"description\" : \"Weekly sync with the development team\",\n  \"location\": \"Conference Room A\",\n  \"start_date\": \"2025-06-25T14:00:00\",\n  \"end_date\": \"2025-06-25T15:00:00\",\n  \"timezone\": \"Europe/Moscow\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1120,
+        460
+      ],
+      "id": "92f7ddca-4768-4d8a-b060-717977325a4d",
+      "name": "CALDAV-create"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to move calendar event in Yandex calendar\nThe tool will find the event, update only its time slots, and return confirmation with the new schedule details.\nmake sure, that you know and can provide event_uid before calling it",
+        "jsCode": "const axios = require('axios');\n\n// Function to format date to CalDAV format (YYYYMMDDTHHMMSSZ)\nfunction formatCalDAVDate(date) {\n  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';\n}\n\n// Function to format event date for iCalendar (YYYYMMDDTHHMMSS)\n// Properly handles timezone-aware dates\nfunction formatEventDate(date) {\n  const d = new Date(date);\n  // Use UTC methods to get the correct UTC time\n  const year = d.getUTCFullYear();\n  const month = String(d.getUTCMonth() + 1).padStart(2, '0');\n  const day = String(d.getUTCDate()).padStart(2, '0');\n  const hours = String(d.getUTCHours()).padStart(2, '0');\n  const minutes = String(d.getUTCMinutes()).padStart(2, '0');\n  const seconds = String(d.getUTCSeconds()).padStart(2, '0');\n  return `${year}${month}${day}T${hours}${minutes}${seconds}Z`;\n}\n\n// Function to parse iCalendar data and extract event details\nfunction parseICalData(icalData) {\n  const lines = icalData.split('\\n');\n  const event = {};\n  \n  for (const line of lines) {\n    if (line.startsWith('UID:')) {\n      event.uid = line.substring(4).trim();\n    } else if (line.startsWith('SUMMARY:')) {\n      event.summary = line.substring(8).trim();\n    } else if (line.startsWith('DESCRIPTION:')) {\n      event.description = line.substring(12).trim();\n    } else if (line.startsWith('LOCATION:')) {\n      event.location = line.substring(9).trim();\n    } else if (line.startsWith('STATUS:')) {\n      event.status = line.substring(7).trim();\n    } else if (line.startsWith('TRANSP:')) {\n      event.transp = line.substring(7).trim();\n    }\n  }\n  \n  return event;\n}\n\nconsole.log(query);\n\n// Extract parameters from query\nconst eventUID = query.event_uid; // UID of the event to move\nconst eventTitle = query.event_title; // Alternative: search by title if UID not provided\nconst newStartDate = new Date(query.new_start_date);\nconst newEndDate = new Date(query.new_end_date);\nconst timezone = query.timezone || 'Europe/Moscow';\n\n// Configuration\nconst email = 'YOUR_EMAIL@yandex.ru';\nconst username = 'YOUR_EMAIL@yandex.ru';\nconst password = 'YOUR_APP_PASSWORD';\nconst secret = Buffer.from(`${username}:${password}`).toString('base64');\nconst baseUrl = `https://caldav.yandex.ru/calendars/${email}/events-default/`;\n\ntry {\n  // Step 1: Find the event (search in a reasonable time range around the original date)\n  const searchStartDate = new Date(newStartDate);\n  searchStartDate.setDate(searchStartDate.getDate() - 30); // Search 30 days before\n  const searchEndDate = new Date(newStartDate);\n  searchEndDate.setDate(searchEndDate.getDate() + 30); // Search 30 days after\n  \n  const searchXml = `<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<C:calendar-query xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\">    \n  <D:prop>    \n    <D:getetag/>    \n    <C:calendar-data/>    \n  </D:prop>    \n  <C:filter>    \n    <C:comp-filter name=\"VCALENDAR\">    \n      <C:comp-filter name=\"VEVENT\">    \n        <C:time-range start=\"${formatCalDAVDate(searchStartDate)}\" end=\"${formatCalDAVDate(searchEndDate)}\"/>    \n      </C:comp-filter>    \n    </C:comp-filter>    \n  </C:filter>    \n</C:calendar-query>`;\n\n  // Search for events\n  const searchResponse = await axios({\n    method: 'REPORT',\n    url: baseUrl,\n    headers: {\n      'Authorization': `Basic ${secret}`,\n      'Content-Type': 'application/xml; charset=utf-8',\n      'Depth': '1'\n    },\n    data: searchXml\n  });\n\n  // Parse response using regex to find the target event\n  const responseText = searchResponse.data;\n  let targetEvent = null;\n  let targetHref = null;\n  let targetEtag = null;\n  \n  // Extract all response blocks\n  const responseMatches = responseText.match(/<D:response>[\\s\\S]*?<\\/D:response>/g) || [];\n  \n  for (const responseBlock of responseMatches) {\n    // Extract href\n    const hrefMatch = responseBlock.match(/<href[^>]*>([^<]+)<\\/href>/);\n    const href = hrefMatch ? hrefMatch[1] : null;\n    \n    // Extract etag\n    const etagMatch = responseBlock.match(/<D:getetag>([^<]+)<\\/D:getetag>/);\n    const etag = etagMatch ? etagMatch[1].replace(/\"/g, '') : null;\n    \n    // Extract calendar data\n    const calDataMatch = responseBlock.match(/<C:calendar-data[^>]*>([\\s\\S]*?)<\\/C:calendar-data>/);\n    const calendarData = calDataMatch ? calDataMatch[1] : null;\n    \n    if (calendarData) {\n      const eventData = parseICalData(calendarData);\n      \n      // Match by UID or title\n      if ((eventUID && eventData.uid === eventUID) || \n          (eventTitle && eventData.summary && eventData.summary.toLowerCase().includes(eventTitle.toLowerCase()))) {\n        targetEvent = eventData;\n        targetHref = href;\n        targetEtag = etag;\n        break;\n      }\n    }\n  }\n  \n  if (!targetEvent) {\n    return JSON.stringify([{\n      json: {\n        error: 'Event not found',\n        searchCriteria: {\n          uid: eventUID,\n          title: eventTitle\n        }\n      }\n    }]);\n  }\n  \n  // Step 2: Create updated event data with new times\n  const timestamp = formatCalDAVDate(new Date());\n  const updatedIcalData = `BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//CalDAV Client//EN\nCALSCALE:GREGORIAN\nBEGIN:VEVENT\nUID:${targetEvent.uid}\nDTSTAMP:${timestamp}\nDTSTART:${formatEventDate(newStartDate)}\nDTEND:${formatEventDate(newEndDate)}\nSUMMARY:${targetEvent.summary || 'Untitled Event'}\nDESCRIPTION:${targetEvent.description || ''}\nLOCATION:${targetEvent.location || ''}\nSTATUS:${targetEvent.status || 'CONFIRMED'}\nTRANSP:${targetEvent.transp || 'OPAQUE'}\nEND:VEVENT\nEND:VCALENDAR`;\n\n  // Step 3: Update the event\n  // Build the complete URL\n  let updateUrl;\n  if (!targetHref) {\n    throw new Error('No href found for the event');\n  }\n  \n  if (targetHref.startsWith('http')) {\n    updateUrl = targetHref;\n  } else {\n    // Clean up the href and build the full URL\n    const cleanHref = targetHref.startsWith('/') ? targetHref : '/' + targetHref;\n    updateUrl = `https://caldav.yandex.ru${cleanHref}`;\n  }\n  \n  const updateResponse = await axios({\n    method: 'PUT',\n    url: updateUrl,\n    headers: {\n      'Authorization': `Basic ${secret}`,\n      'Content-Type': 'text/calendar; charset=utf-8',\n      'If-Match': targetEtag // Use etag to ensure we're updating the right version\n    },\n    data: updatedIcalData\n  });\n\n  // Return success response\n  return JSON.stringify([{\n    json: {\n      status: updateResponse.status,\n      message: 'Event rescheduled successfully',\n      eventDetails: {\n        uid: targetEvent.uid,\n        title: targetEvent.summary,\n        oldStartDate: query.old_start_date || 'Not specified',\n        newStartDate: newStartDate.toISOString(),\n        newEndDate: newEndDate.toISOString(),\n        location: targetEvent.location,\n        href: targetHref\n      }\n    }\n  }]);\n  \n} catch (error) {\n  // Handle errors\n  return JSON.stringify([{\n    json: {\n      error: error.message,\n      status: error.response ? error.response.status : null,\n      details: error.response ? error.response.data : null,\n      rescheduleData: {\n        eventUID: eventUID,\n        eventTitle: eventTitle,\n        newStartDate: newStartDate.toISOString(),\n        newEndDate: newEndDate.toISOString()\n      }\n    }\n  }]);\n}",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n  \"event_uid\": \"a1b2c3d4e5f6@caldav.yandex.ru\",\n  \"new_start_date\": \"2025-06-26T10:00:00\",\n  \"new_end_date\": \"2025-06-26T11:00:00\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1240,
+        460
+      ],
+      "id": "e4ce9e53-6d2c-4ce9-90cd-7703fcbb5e66",
+      "name": "CALDAV-move"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "8891ff67-b1bc-4303-af43-ba0353880fee"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8468136b-0695-49ec-82ab-ac3fa87c6f07",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        920,
+        -260
+      ],
+      "id": "98d7fda8-6160-4268-b3ff-710626282205",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "fileId": "={{ $('Telegram Trigger').item.json.message.voice.file_id }}"
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1080,
+        -160
+      ],
+      "id": "6d69a296-0a9f-454c-aa87-f3dacc26d1da",
+      "name": "Get a file",
+      "webhookId": "64e14781-adff-4e08-8f7b-d48de390a3bc",
+      "credentials": {
+        "telegramApi": {
+          "id": "j7FCsxQ9vMTE0PlK",
+          "name": "BOTNAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        -180
+      ],
+      "id": "772b5ee4-2a38-4273-9844-72935e7fcc1a",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "description": "Call this tool to delete calendar event from Yandex calendar\nThe tool will find the event and delete it from Yandex server and return confirmation.\nmake sure, that you know and can provide event_uid before calling it",
+        "jsCode": "const axios = require('axios');\n\n// Function to format date to CalDAV format (YYYYMMDDTHHMMSSZ)\nfunction formatCalDAVDate(date) {\n  return date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';\n}\n\n// Function to parse iCalendar data and extract event details\nfunction parseICalData(icalData) {\n  const lines = icalData.split('\\n');\n  const event = {};\n  \n  for (const line of lines) {\n    if (line.startsWith('UID:')) {\n      event.uid = line.substring(4).trim();\n    } else if (line.startsWith('SUMMARY:')) {\n      event.summary = line.substring(8).trim();\n    }\n  }\n  \n  return event;\n}\n\nconsole.log(query);\n\n// Extract event UID from query\nconst eventUID = query.event_uid;\n\nif (!eventUID) {\n  return JSON.stringify([{\n    json: {\n      error: 'Event UID is required',\n      message: 'Please provide event_uid parameter'\n    }\n  }]);\n}\n\n// Configuration\nconst email = 'YOUR_EMAIL@yandex.ru';\nconst username = 'YOUR_EMAIL@yandex.ru';\nconst password = 'YOUR_APP_PASSWORD';\nconst secret = Buffer.from(`${username}:${password}`).toString('base64');\nconst baseUrl = `https://caldav.yandex.ru/calendars/${email}/events-default/`;\n\ntry {\n  // Step 1: Find the event to get its href and etag\n  const searchStartDate = new Date();\n  searchStartDate.setDate(searchStartDate.getDate() - 365); // Search 1 year back\n  const searchEndDate = new Date();\n  searchEndDate.setDate(searchEndDate.getDate() + 365); // Search 1 year forward\n  \n  const searchXml = `<?xml version=\"1.0\" encoding=\"utf-8\" ?>\n<C:calendar-query xmlns:D=\"DAV:\" xmlns:C=\"urn:ietf:params:xml:ns:caldav\">    \n  <D:prop>    \n    <D:getetag/>    \n    <C:calendar-data/>    \n  </D:prop>    \n  <C:filter>    \n    <C:comp-filter name=\"VCALENDAR\">    \n      <C:comp-filter name=\"VEVENT\">    \n        <C:time-range start=\"${formatCalDAVDate(searchStartDate)}\" end=\"${formatCalDAVDate(searchEndDate)}\"/>    \n      </C:comp-filter>    \n    </C:comp-filter>    \n  </C:filter>    \n</C:calendar-query>`;\n\n  // Search for the event\n  const searchResponse = await axios({\n    method: 'REPORT',\n    url: baseUrl,\n    headers: {\n      'Authorization': `Basic ${secret}`,\n      'Content-Type': 'application/xml; charset=utf-8',\n      'Depth': '1'\n    },\n    data: searchXml\n  });\n\n  // Parse response to find the target event\n  const responseText = searchResponse.data;\n  let targetEvent = null;\n  let targetHref = null;\n  let targetEtag = null;\n  \n  // Extract all response blocks\n  const responseMatches = responseText.match(/<D:response>[\\s\\S]*?<\\/D:response>/g) || [];\n  \n  for (const responseBlock of responseMatches) {\n    // Extract href\n    const hrefMatch = responseBlock.match(/<href[^>]*>([^<]+)<\\/href>/);\n    const href = hrefMatch ? hrefMatch[1] : null;\n    \n    // Extract etag\n    const etagMatch = responseBlock.match(/<D:getetag>([^<]+)<\\/D:getetag>/);\n    const etag = etagMatch ? etagMatch[1].replace(/\"/g, '') : null;\n    \n    // Extract calendar data\n    const calDataMatch = responseBlock.match(/<C:calendar-data[^>]*>([\\s\\S]*?)<\\/C:calendar-data>/);\n    const calendarData = calDataMatch ? calDataMatch[1] : null;\n    \n    if (calendarData) {\n      const eventData = parseICalData(calendarData);\n      \n      // Match by UID\n      if (eventData.uid === eventUID) {\n        targetEvent = eventData;\n        targetHref = href;\n        targetEtag = etag;\n        break;\n      }\n    }\n  }\n  \n  if (!targetEvent) {\n    return JSON.stringify([{\n      json: {\n        error: 'Event not found',\n        eventUID: eventUID,\n        message: 'Could not find event with specified UID'\n      }\n    }]);\n  }\n  \n  // Step 2: Delete the event\n  let deleteUrl;\n  if (!targetHref) {\n    throw new Error('No href found for the event');\n  }\n  \n  if (targetHref.startsWith('http')) {\n    deleteUrl = targetHref;\n  } else {\n    const cleanHref = targetHref.startsWith('/') ? targetHref : '/' + targetHref;\n    deleteUrl = `https://caldav.yandex.ru${cleanHref}`;\n  }\n  \n  const deleteResponse = await axios({\n    method: 'DELETE',\n    url: deleteUrl,\n    headers: {\n      'Authorization': `Basic ${secret}`,\n      'If-Match': targetEtag // Use etag to ensure we're deleting the right version\n    }\n  });\n\n  // Return success response\n  return JSON.stringify([{\n    json: {\n      status: deleteResponse.status,\n      message: 'Event deleted successfully',\n      deletedEvent: {\n        uid: targetEvent.uid,\n        title: targetEvent.summary || 'Untitled Event',\n        href: targetHref\n      }\n    }\n  }]);\n  \n} catch (error) {\n  // Handle errors\n  return JSON.stringify([{\n    json: {\n      error: error.message,\n      status: error.response ? error.response.status : null,\n      details: error.response ? error.response.data : null,\n      eventUID: eventUID\n    }\n  }]);\n}",
+        "specifyInputSchema": true,
+        "jsonSchemaExample": "{\n  \"event_uid\" : \"77a6asdfsdfafa7018027954aa@caldav.yandex.ru\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1380,
+        460
+      ],
+      "id": "a3753a30-7cc3-4fce-940f-1aa527a2a1b3",
+      "name": "CALDAV-delete"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "8891ff67-b1bc-4303-af43-ba0353880fee"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "8468136b-0695-49ec-82ab-ac3fa87c6f07",
+                    "leftValue": "={{ $('Telegram Trigger').item.json.message.voice }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "object",
+                      "operation": "exists",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1180,
+        140
+      ],
+      "id": "5bac20e7-b4d5-4f04-bdbf-c8247b3bdd6d",
+      "name": "Switch1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const axios = require('axios');\nconst https = require('https');\nconst querystring = require('querystring');\n\n// Create axios instance with SSL disabled\nconst api = axios.create({\n  httpsAgent: new https.Agent({ rejectUnauthorized: false })\n});\n\n// Get OAuth token\nconst getToken = async (authKey) => {\n  const { data } = await api.post('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', \n    querystring.stringify({ scope: 'SALUTE_SPEECH_PERS' }), {\n    headers: {\n      'RqUID': '7f0sdf1-c3f3-43g36-bsde-9f3esdc91e',\n      'Content-Type': 'application/x-www-form-urlencoded',\n      'Authorization': `Bearer ${authKey}`\n    }\n  });\n  return data.access_token;\n};\n\n// Synthesize text\nconst synthesize = async (accessToken, text, voice = 'May_24000', format = 'wav16') => {\n  const { data } = await api.post(`https://smartspeech.sber.ru/rest/v1/text:synthesize?voice=${voice}&format=${format}`, \n    text, {\n    headers: { \n      'Authorization': `Bearer ${accessToken}`,\n      'Content-Type': 'application/text'\n    },\n    responseType: 'arraybuffer'\n  });\n  return data;\n};\n\n// Usage in n8n\nconst clientId = 'YOUR_SALUTESPEECH_CLIENT_ID';\nconst clientSecret = 'YOUR_SALUTESPEECH_CLIENT_SECRET';\nconst authKey = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');\n\nconst text = $input.first().json.output;\n\nconst accessToken = await getToken(authKey);\nconst audioBuffer = await synthesize(accessToken, text);\n\n// Prepare binary data for n8n\nconst binaryData = await this.helpers.prepareBinaryData(\n  Buffer.from(audioBuffer),\n  `${$input.first().json.output.split('\\n')[0]}`,\n  'audio/wav'\n);\n\nreturn [{ \n  json: { message: 'Speech generated successfully' },\n  binary: { audio: binaryData }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        200
+      ],
+      "id": "98ef2e72-19a9-448c-bcb7-23b7bce0afeb",
+      "name": "GenerateSpeech"
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "34768965",
+        "binaryData": true,
+        "binaryPropertyName": "audio",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1500,
+        200
+      ],
+      "id": "b0fef0b6-ceb6-4ed3-b8cb-b907dc3366ac",
+      "name": "Send an audio file",
+      "webhookId": "10d35673-e586-41a6-9f52-944c0163f5cf",
+      "credentials": {
+        "telegramApi": {
+          "id": "j7FCsxQ9vMTE0PlK",
+          "name": "BOTNAME"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const axios = require('axios');\nconst https = require('https');\nconst querystring = require('querystring');\n\n// Create axios instance with SSL disabled\nconst api = axios.create({\n  httpsAgent: new https.Agent({ rejectUnauthorized: false })\n});\n\n// Get OAuth token\nconst getToken = async (authKey) => {\n  try {\n    console.log('Getting token...');\n    const { data } = await api.post('https://ngw.devices.sberbank.ru:9443/api/v2/oauth', \n      querystring.stringify({ scope: 'SALUTE_SPEECH_PERS' }), {\n      headers: {\n        'RqUID': '7f0sdf1-c3f3-43g36-bsde-9f3esdc91e',\n        'Content-Type': 'application/x-www-form-urlencoded',\n        'Authorization': `Bearer ${authKey}`\n      }\n    });\n    console.log('Token obtained successfully');\n    return data.access_token;\n  } catch (error) {\n    console.log('Token error:', error.response?.data);\n    throw error;\n  }\n};\n\n// Synchronous speech recognition\nconst recognizeSpeech = async (accessToken, audioBuffer) => {\n  try {\n    console.log('Audio buffer size:', audioBuffer.length);\n    \n    // OGA files are Ogg Vorbis/Opus format\n    const url = 'https://smartspeech.sber.ru/rest/v1/speech:recognize?language=ru-RU&model=general';\n    console.log('Request URL:', url);\n    \n    const headers = { \n      'Authorization': `Bearer ${accessToken}`,\n      'Content-Type': 'audio/ogg;codecs=opus'  // Fixed for OGA format\n    };\n    console.log('Request headers:', headers);\n    \n    const { data } = await api.post(url, audioBuffer, { headers });\n    \n    console.log('Recognition response:', data);\n    return data.result.join(' ');\n    \n  } catch (error) {\n    console.log('Recognition error status:', error.response?.status);\n    console.log('Recognition error headers:', error.response?.headers);\n    \n    // Try to decode error if it's a buffer\n    if (error.response?.data && error.response.data.type === 'Buffer') {\n      const errorText = Buffer.from(error.response.data.data).toString();\n      console.log('Decoded error:', errorText);\n    } else {\n      console.log('Recognition error data:', error.response?.data);\n    }\n    \n    throw error;\n  }\n};\n\n// Usage in n8n\nconst clientId = 'YOUR_SALUTESPEECH_CLIENT_ID';\nconst clientSecret = 'YOUR_SALUTESPEECH_CLIENT_SECRET';\nconst authKey = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');\n\nconsole.log('Getting audio buffer...');\n// Get audio buffer from previous node's binary data\nconst audioBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\nconsole.log('Audio buffer obtained');\n\nconst accessToken = await getToken(authKey);\nconst transcription = await recognizeSpeech(accessToken, audioBuffer);\n\nreturn [{ \n  json: { \n    text: transcription,\n    message: 'Transcription completed successfully' \n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        -160
+      ],
+      "id": "a4626e63-a41f-4120-81be-5987169a33e2",
+      "name": "Transcribe"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "389bd450-74c4-4370-aca5-222794eba15e",
+              "name": "sessionId",
+              "value": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+              "type": "string"
+            },
+            {
+              "id": "390ced7d-f907-4767-95c3-e91dc3bfdf45",
+              "name": "chatInput",
+              "value": "={{ $json.data[0].text ?? $json.data[0].message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        660,
+        140
+      ],
+      "id": "b47cf480-7391-4b15-8409-476fde6a57bc",
+      "name": "setChatVars"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Calculator": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ГигаЧат Сбер": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Switch1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Update token",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update token": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CALDAV-read1": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CALDAV-create": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CALDAV-move": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file": {
+      "main": [
+        [
+          {
+            "node": "Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "setChatVars",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CALDAV-delete": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch1": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "GenerateSpeech",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GenerateSpeech": {
+      "main": [
+        [
+          {
+            "node": "Send an audio file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Transcribe": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "setChatVars": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7627e2fb-7341-4022-b1bf-7fdee17b0d45",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cab31b0asdfsdfsdfgsdfsddfgsdfg6fdc99fee6bf605"
+  },
+  "id": "YgFKkFDkoKLNym9Q",
+  "tags": []
+}
